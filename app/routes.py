@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
 from app import app
-from flask import render_template, flash, redirect, url_for
+from flask import render_template, flash, redirect, url_for, request
 from app.forms import LoginForm
-from flask_login import current_user, login_user
+from flask_login import current_user, login_user, logout_user, login_required
 from app.models import User
+from werkzeug.urls import url_parse
 
 @app.route("/")
 @app.route("/index")
+@login_required
 def index():
     return render_template("index.html", title = "Home", user = current_user)
 
@@ -27,6 +29,16 @@ def login():
         login_user(user, remember=form.remember_me.data)
         flash('Login requested for user {}, remember_me={}'.format(
             form.username.data, form.remember_me.data))
-        return redirect(url_for("index"))
+
+        next_page = request.args.get("next")
+        if not next_page or url_parse(next_page).netloc == "":
+            return redirect(url_for("index"))
+        return redirect(next_page)
 
     return render_template("login.html", title = "Sign in", form = form)
+
+@app.route("/logout")
+def logout():
+    logout_user()
+    flash("You have been successful logout!")
+    return redirect(url_for("index"))
